@@ -1,0 +1,31 @@
+<?php
+//ini_set('display_errors', 1);
+
+require_once 'redbean-orm.php';
+require_once 'phpQuery.php';
+
+R::setup( 'mysql:host=localhost;dbname=bookmarks','admin', 'password' );
+if ( !R::testconnection() ) {exit ('Нет соединения с базой данных');}
+session_start();
+
+$token = R::findOne('users', 'id = ?', [$_SESSION['logged_user']->id]);
+$domain = $_SERVER['SERVER_NAME'];
+$keyAES = '7133743677397A24432646294A404D635166546A576E5A723475377821412544';
+
+// $bookmarks = R::findAll('bookmarks', 'is_sending = ? AND author_id = ?', [false, $token->id]);
+$bookmarks = R::findLike( 'bookmarks', ['is_sending' => [false], 'author_id' => [$token->id]], ' ORDER BY id DESC ' );
+$bookmarksArchive = R::findLike( 'bookmarks', ['is_sending' => [true], 'author_id' => [$token->id]], ' ORDER BY id DESC ' );
+
+// $bookmarksAll = R::findAll('bookmarks', 'author_id = ?', [$token->id]);
+$bookmarksAll = R::findLike( 'bookmarks', ['author_id' => [$token->id]], ' ORDER BY id DESC ' );
+$bookmarksPublic = R::findLike( 'bookmarks', ['author_id' => [$_GET['author']]], ' ORDER BY id DESC ' );
+
+$collections = R::findAll('collections', 'author_id = ?', [$token->id]);
+$collection = R::findOne('collections', 'id = ?', [$_GET['id']]);
+
+$profile = R::findOne('users', 'id = ?', [$_GET['id']]);
+$profileCollections = R::findLike( 'collections', ['author_id' => [$profile->id], 'is_public' => [true]], ' ORDER BY id DESC ' );
+
+$checkGlobalSubscribe = R::findOne('subscribe', 'user = ?', [$token->login]);
+
+require_once 'controller.php';
